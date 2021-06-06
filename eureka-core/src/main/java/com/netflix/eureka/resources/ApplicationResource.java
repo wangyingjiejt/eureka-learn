@@ -43,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 使用了jersey轻量级服务框架
  * A <em>jersey</em> resource that handles request related to a particular
  * {@link com.netflix.discovery.shared.Application}.
  *
@@ -131,12 +132,13 @@ public class ApplicationResource {
     }
 
     /**
+     * 注册实例
      * Registers information about a particular instance for an
      * {@link com.netflix.discovery.shared.Application}.
      *
      * @param info
      *            {@link InstanceInfo} information of the instance.
-     * @param isReplication
+     * @param isReplication 同步给其他eureka server节点，防止重复添加
      *            a header parameter containing information whether this is
      *            replicated from other nodes.
      */
@@ -146,6 +148,7 @@ public class ApplicationResource {
                                 @HeaderParam(PeerEurekaNode.HEADER_REPLICATION) String isReplication) {
         logger.debug("Registering instance {} (replication={})", info.getId(), isReplication);
         // validate that the instanceinfo contains all the necessary required fields
+        //校验必要参数
         if (isBlank(info.getId())) {
             return Response.status(400).entity("Missing instanceId").build();
         } else if (isBlank(info.getHostName())) {

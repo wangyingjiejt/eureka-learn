@@ -193,11 +193,12 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     public void register(InstanceInfo registrant, int leaseDuration, boolean isReplication) {
         read.lock();
         try {
+            //register 是一个嵌套的currentHashMap，第一层key是appName,第二层key实例名称
             Map<String, Lease<InstanceInfo>> gMap = registry.get(registrant.getAppName());
             REGISTER.increment(isReplication);
             if (gMap == null) {
                 final ConcurrentHashMap<String, Lease<InstanceInfo>> gNewMap = new ConcurrentHashMap<String, Lease<InstanceInfo>>();
-                gMap = registry.putIfAbsent(registrant.getAppName(), gNewMap);
+                gMap = registry.putIfAbsent(registrant.getAppName(), gNewMap);//如果这个应用是首次添加，则gMap返回空
                 if (gMap == null) {
                     gMap = gNewMap;
                 }
