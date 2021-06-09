@@ -86,8 +86,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             .<String, InstanceStatus>build().asMap();
 
     // CircularQueues here for debugging/statistics purposes only
+    //主要用于debug和统计使用的
     private final CircularQueue<Pair<Long, String>> recentRegisteredQueue;
     private final CircularQueue<Pair<Long, String>> recentCanceledQueue;
+    //主要用于增量注册表使用
     private ConcurrentLinkedQueue<RecentlyChangedItem> recentlyChangedQueue = new ConcurrentLinkedQueue<RecentlyChangedItem>();
 
     private final ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -233,6 +235,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             if (existingLease != null) {
                 lease.setServiceUpTimestamp(existingLease.getServiceUpTimestamp());
             }
+            //真正注册的代码
             gMap.put(registrant.getId(), lease);
             recentRegisteredQueue.add(new Pair<Long, String>(
                     System.currentTimeMillis(),
@@ -292,6 +295,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     }
 
     /**
+     * 实例取消（下线）
      * {@link #cancel(String, String, boolean)} method is overridden by {@link PeerAwareInstanceRegistry}, so each
      * cancel request is replicated to the peers. This is however not desired for expires which would be counted
      * in the remote peers as valid cancellations, so self preservation mode would not kick-in.
@@ -305,6 +309,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             if (gMap != null) {
                 leaseToCancel = gMap.remove(id);
             }
+            //先加入最近取消的队列
             recentCanceledQueue.add(new Pair<Long, String>(System.currentTimeMillis(), appName + "(" + id + ")"));
             InstanceStatus instanceStatus = overriddenInstanceStatusMap.remove(id);
             if (instanceStatus != null) {
@@ -345,6 +350,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     }
 
     /**
+     * 由service provider定期调用，类似于心跳，告诉server还活着
      * Marks the given instance of the given app name as renewed, and also marks whether it originated from
      * replication.
      *

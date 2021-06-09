@@ -383,6 +383,8 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     @Override
     public boolean cancel(final String appName, final String id,
                           final boolean isReplication) {
+        //1、先调用super.renew()续约
+        //2、同步心跳给其他服务
         if (super.cancel(appName, id, isReplication)) {
             replicateToPeers(Action.Cancel, appName, id, null, null, isReplication);
 
@@ -423,6 +425,8 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
      * java.lang.String, long, boolean)
      */
     public boolean renew(final String appName, final String id, final boolean isReplication) {
+        //1、先调用super.renew()续约
+        //2、同步心跳给其他服务
         if (super.renew(appName, id, isReplication)) {
             replicateToPeers(Action.Heartbeat, appName, id, null, null, isReplication);
             return true;
