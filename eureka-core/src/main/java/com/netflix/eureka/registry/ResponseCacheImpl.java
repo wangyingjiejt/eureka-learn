@@ -128,6 +128,7 @@ public class ResponseCacheImpl implements ResponseCache {
         this.registry = registry;
 
         long responseCacheUpdateIntervalMs = serverConfig.getResponseCacheUpdateIntervalMs();
+        //根据配置初始化readWriteCacheMap
         this.readWriteCacheMap =
                 CacheBuilder.newBuilder().initialCapacity(serverConfig.getInitialCapacityOfResponseCache())
                         .expireAfterWrite(serverConfig.getResponseCacheAutoExpirationInSeconds(), TimeUnit.SECONDS)
@@ -153,6 +154,7 @@ public class ResponseCacheImpl implements ResponseCache {
                             }
                         });
 
+        //如果开启了ReadOnlyCache,初始化
         if (shouldUseReadOnlyResponseCache) {
             timer.schedule(getCacheUpdateTask(),
                     new Date(((System.currentTimeMillis() / responseCacheUpdateIntervalMs) * responseCacheUpdateIntervalMs)
@@ -347,21 +349,27 @@ public class ResponseCacheImpl implements ResponseCache {
     }
 
     /**
+     * 真正获取到注册信息的代码
+     * 可以看出这里最后从readWriteCacheMap中获取注册表信息，如果没有也不直接从register直接获取
      * Get the payload in both compressed and uncompressed form.
      */
     @VisibleForTesting
     Value getValue(final Key key, boolean useReadOnlyCache) {
         Value payload = null;
         try {
+            //通过配置可以控制是否开启readOnlyCache这一级别的缓存
             if (useReadOnlyCache) {
                 final Value currentPayload = readOnlyCacheMap.get(key);
                 if (currentPayload != null) {
                     payload = currentPayload;
                 } else {
+                    //readOnlyCacheMap没有拿到注册信息，从readWriteCacheMap中获取
                     payload = readWriteCacheMap.get(key);
+                    //获取后会写到readOnlyCache中
                     readOnlyCacheMap.put(key, payload);
                 }
             } else {
+                //配置关闭readOnlyCache,直接从readWriteCacheMap中获取
                 payload = readWriteCacheMap.get(key);
             }
         } catch (Throwable t) {

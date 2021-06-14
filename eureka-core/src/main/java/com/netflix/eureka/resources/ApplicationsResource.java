@@ -99,6 +99,8 @@ public class ApplicationsResource {
     }
 
     /**
+     *
+     * 消费者获取注册服务列表
      * Get information about all {@link com.netflix.discovery.shared.Applications}.
      *
      * @param version the version of the request.
@@ -134,10 +136,13 @@ public class ApplicationsResource {
         // Check if the server allows the access to the registry. The server can
         // restrict access if it is not
         // ready to serve traffic depending on various reasons.
+        //这块要等到server加载完之后才能获取，比如启动慢等各种原因
         if (!registry.shouldAllowAccess(isRemoteRegionRequested)) {
             return Response.status(Status.FORBIDDEN).build();
         }
+        //将当前版本设置到独立的线程空间
         CurrentRequestVersion.set(Version.toEnum(version));
+        //默认使用Json格式返回
         KeyType keyType = Key.KeyType.JSON;
         String returnMediaType = MediaType.APPLICATION_JSON;
         if (acceptHeader == null || !acceptHeader.contains(HEADER_JSON_VALUE)) {

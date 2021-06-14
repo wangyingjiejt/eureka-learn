@@ -267,6 +267,7 @@ public class InstanceResource {
     }
 
     /**
+     * 下线服务
      * Handles cancellation of leases for this particular instance.
      *
      * @param isReplication

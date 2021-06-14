@@ -20,6 +20,7 @@ package com.netflix.eureka.resources;
 import com.netflix.eureka.Version;
 
 /**
+ * 用Thread实现的一个记录当前版本信息的缓存类
  * A thread-scoped value that holds the "current {@link com.netflix.eureka.Version}" for the
  * request.
  *

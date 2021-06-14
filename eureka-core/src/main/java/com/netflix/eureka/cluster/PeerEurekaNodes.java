@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 帮助管理eureka server集群节点的工具类
  * Helper class to manage lifecycle of a collection of {@link PeerEurekaNode}s.
  *
  * @author Tomasz Bak
@@ -84,6 +85,7 @@ public class PeerEurekaNodes {
                 }
         );
         try {
+            //更新server集群信息
             updatePeerEurekaNodes(resolvePeerUrls());
             Runnable peersUpdateTask = new Runnable() {
                 @Override
@@ -134,6 +136,7 @@ public class PeerEurekaNodes {
                 .getDiscoveryServiceUrls(clientConfig, zone, new EndpointUtils.InstanceInfoBasedUrlRandomizer(myInfo));
 
         int idx = 0;
+        //遍历去掉自己的url
         while (idx < replicaUrls.size()) {
             if (isThisMyUrl(replicaUrls.get(idx))) {
                 replicaUrls.remove(idx);

@@ -301,16 +301,19 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
      * in the remote peers as valid cancellations, so self preservation mode would not kick-in.
      */
     protected boolean internalCancel(String appName, String id, boolean isReplication) {
+        //加锁操作
         read.lock();
         try {
             CANCEL.increment(isReplication);
             Map<String, Lease<InstanceInfo>> gMap = registry.get(appName);
             Lease<InstanceInfo> leaseToCancel = null;
             if (gMap != null) {
+                //从注册表中移除该节点
                 leaseToCancel = gMap.remove(id);
             }
             //先加入最近取消的队列
             recentCanceledQueue.add(new Pair<Long, String>(System.currentTimeMillis(), appName + "(" + id + ")"));
+            // TODO: 2021/6/14  这块的状态比较复杂，需要统一整理
             InstanceStatus instanceStatus = overriddenInstanceStatusMap.remove(id);
             if (instanceStatus != null) {
                 logger.debug("Removed instance id {} from the overridden map which has value {}", id, instanceStatus.name());
@@ -331,6 +334,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     vip = instanceInfo.getVIPAddress();
                     svip = instanceInfo.getSecureVipAddress();
                 }
+                //清除缓存
                 invalidateCache(appName, vip, svip);
                 logger.info("Cancelled instance {}/{} (replication={})", appName, id, isReplication);
             }
@@ -341,6 +345,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         synchronized (lock) {
             if (this.expectedNumberOfClientsSendingRenews > 0) {
                 // Since the client wants to cancel it, reduce the number of clients to send renews.
+                /**
+                 * 这个变量看名字是记录 期望需要续约的provider数量，既然这个节点下线，也就无需续约了，数量-1
+                 */
                 this.expectedNumberOfClientsSendingRenews = this.expectedNumberOfClientsSendingRenews - 1;
                 updateRenewsPerMinThreshold();
             }
@@ -608,6 +615,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             if (leaseMap != null) {
                 for (Entry<String, Lease<InstanceInfo>> leaseEntry : leaseMap.entrySet()) {
                     Lease<InstanceInfo> lease = leaseEntry.getValue();
+                    //遍历注册表上所有的provider，获取到已经过期的provider放到expiredLeases列表里
                     if (lease.isExpired(additionalLeaseMs) && lease.getHolder() != null) {
                         expiredLeases.add(lease);
                     }
@@ -627,7 +635,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
             Random random = new Random(System.currentTimeMillis());
             for (int i = 0; i < toEvict; i++) {
-                // Pick a random item (Knuth shuffle algorithm)
+                // Pick a random item (Knuth shuffle algorithm)  为什么需要乱序？
                 int next = i + random.nextInt(expiredLeases.size() - i);
                 Collections.swap(expiredLeases, i, next);
                 Lease<InstanceInfo> lease = expiredLeases.get(i);
@@ -1244,13 +1252,18 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         return overriddenInstanceStatusMap.size();
     }
 
-    /* visible for testing */ class EvictionTask extends TimerTask {
+    /*
+    * visible for testing
+    * 定时剔除失效的provider
+    * */
+    class EvictionTask extends TimerTask {
 
         private final AtomicLong lastExecutionNanosRef = new AtomicLong(0l);
 
         @Override
         public void run() {
             try {
+                //计算了一个补偿时间，作用？？
                 long compensationTimeMs = getCompensationTimeMs();
                 logger.info("Running the evict task with compensationTime {}ms", compensationTimeMs);
                 evict(compensationTimeMs);

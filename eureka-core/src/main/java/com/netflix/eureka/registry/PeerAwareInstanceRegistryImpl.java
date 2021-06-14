@@ -384,10 +384,9 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     public boolean cancel(final String appName, final String id,
                           final boolean isReplication) {
         //1、先调用super.renew()续约
-        //2、同步心跳给其他服务
+        //2、同步信息给其他服务
         if (super.cancel(appName, id, isReplication)) {
             replicateToPeers(Action.Cancel, appName, id, null, null, isReplication);
-
             return true;
         }
         return false;
@@ -428,6 +427,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
         //1、先调用super.renew()续约
         //2、同步心跳给其他服务
         if (super.renew(appName, id, isReplication)) {
+            //renew对应的action就是心跳
             replicateToPeers(Action.Heartbeat, appName, id, null, null, isReplication);
             return true;
         }
@@ -630,6 +630,7 @@ public class PeerAwareInstanceRegistryImpl extends AbstractInstanceRegistry impl
     }
 
     /**
+     * 通知其它server
      * Replicates all eureka actions to peer eureka nodes except for replication
      * traffic to this node.
      *
