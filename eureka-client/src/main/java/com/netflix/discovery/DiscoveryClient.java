@@ -461,6 +461,7 @@ public class DiscoveryClient implements EurekaClient {
             this.preRegistrationHandler.beforeRegistration();
         }
 
+        //向eureka server注册当前实例
         if (clientConfig.shouldRegisterWithEureka() && clientConfig.shouldEnforceRegistrationAtInit()) {
             try {
                 if (!register() ) {
@@ -867,6 +868,7 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 通过rest风格的调用进行注册
      * Register with the eureka service by making the appropriate REST call.
      */
     boolean register() throws Throwable {
@@ -885,6 +887,7 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 通过rest风格的调用进行续约
      * Renew with the eureka service by making the appropriate REST call
      */
     boolean renew() {
@@ -938,6 +941,7 @@ public class DiscoveryClient implements EurekaClient {
                 applicationInfoManager.unregisterStatusChangeListener(statusChangeListener.getId());
             }
 
+            //下线停掉所有相关的定时任务
             cancelScheduledTasks();
 
             // If APPINFO was registered
@@ -1294,6 +1298,7 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 初始化所有的定时任务
      * Initializes all scheduled tasks.
      */
     private void initScheduledTasks() {
@@ -1449,6 +1454,7 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 续约的入口，是一个被定期执行的线程
      * The heartbeat task that renews the lease in the given intervals.
      */
     private class HeartbeatThread implements Runnable {

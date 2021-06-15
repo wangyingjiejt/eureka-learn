@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     average rate - expected number of requests per second (RateLimiters using MINUTES is also supported)
  * </li>
  * </ul>
- *
+ * 一个基于令牌桶算法实现的限流器
  * @author Tomasz Bak
  */
 public class RateLimiter {
