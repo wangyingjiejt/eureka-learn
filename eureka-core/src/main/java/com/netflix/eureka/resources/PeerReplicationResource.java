@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
  * A <em>jersey</em> resource that handles requests for replication purposes.
  *
  * @author Karthik Ranganathan
- *
+ * Eureka server间同步集群状态v
  */
 @Path("/{version}/peerreplication")
 @Produces({"application/xml", "application/json"})

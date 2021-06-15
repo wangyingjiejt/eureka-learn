@@ -273,8 +273,8 @@ public class ResponseCacheImpl implements ResponseCache {
     }
 
     /**
+     * 过期掉readWriteCacheMap
      * Invalidate the cache information given the list of keys.
-     *
      * @param keys the list of keys for which the cache information needs to be invalidated.
      */
     public void invalidate(Key... keys) {

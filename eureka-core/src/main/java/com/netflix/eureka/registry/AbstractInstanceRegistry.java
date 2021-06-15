@@ -205,6 +205,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     gMap = gNewMap;
                 }
             }
+            //判断是否该实例之前已经注册过（可能场景？：比如，原本注册过但随后下线了，但是server还未感知到，此时又进行注册）
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
             if (existingLease != null && (existingLease.getHolder() != null)) {
@@ -214,6 +215,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
 
                 // this is a > instead of a >= because if the timestamps are equal, we still take the remote transmitted
                 // InstanceInfo instead of the server local copy.
+                /**
+                 * 如果新加入的最后修改时间比原本存在的最后修改时间小，使用原本存在的信息代替新注册的服务信息
+                 * （说明接收到的注册信息不是最新的，网络延迟问题？）
+                 */
                 if (existingLastDirtyTimestamp > registrationLastDirtyTimestamp) {
                     logger.warn("There is an existing lease and the existing lease's dirty timestamp {} is greater" +
                             " than the one that is being registered {}", existingLastDirtyTimestamp, registrationLastDirtyTimestamp);
@@ -237,6 +242,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             }
             //真正注册的代码
             gMap.put(registrant.getId(), lease);
+            /**
+             * 用于获取最新注册的服务,eureka提供了"lastn"的接口,用于获取最近注册的服务,主要就是从这个属性里获取。
+             */
             recentRegisteredQueue.add(new Pair<Long, String>(
                     System.currentTimeMillis(),
                     registrant.getAppName() + "(" + registrant.getId() + ")"));
@@ -367,6 +375,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         RENEW.increment(isReplication);
         Map<String, Lease<InstanceInfo>> gMap = registry.get(appName);
         Lease<InstanceInfo> leaseToRenew = null;
+        //取出待续约的实例
         if (gMap != null) {
             leaseToRenew = gMap.get(id);
         }
@@ -397,6 +406,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
             }
             renewsLastMin.increment();
+            //重置最后更新时间
             leaseToRenew.renew();
             return true;
         }
@@ -1353,6 +1363,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     protected InstanceInfo.InstanceStatus getOverriddenInstanceStatus(InstanceInfo r,
                                                                     Lease<InstanceInfo> existingLease,
                                                                     boolean isReplication) {
+        //这里由不同的实现选择不同的规则
         InstanceStatusOverrideRule rule = getInstanceInfoOverrideRule();
         logger.debug("Processing override status using rule: {}", rule);
         return rule.apply(r, existingLease, isReplication).status();

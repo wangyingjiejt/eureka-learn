@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  * A <em>jersey</em> resource that handles operations for a particular instance.
  *
  * @author Karthik Ranganathan, Greg Kim
- *
+ * 服务续约、下线
  */
 @Produces({"application/xml", "application/json"})
 public class InstanceResource {
