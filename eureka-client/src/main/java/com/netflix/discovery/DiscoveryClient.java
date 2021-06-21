@@ -138,6 +138,7 @@ public class DiscoveryClient implements EurekaClient {
 
     // instance variables
     /**
+     * 定时任务池，负责3中任务： 更新提供服务的urls  调度任务监控？
      * A scheduler to be used for the following 3 tasks:
      * - updating service urls
      * - scheduling a TimedSuperVisorTask
@@ -896,9 +897,11 @@ public class DiscoveryClient implements EurekaClient {
             httpResponse = eurekaTransport.registrationClient.sendHeartBeat(instanceInfo.getAppName(), instanceInfo.getId(), instanceInfo, null);
             logger.debug(PREFIX + "{} - Heartbeat status: {}", appPathIdentifier, httpResponse.getStatusCode());
             if (httpResponse.getStatusCode() == Status.NOT_FOUND.getStatusCode()) {
+                //续约时server返回 没有发现当前实例的状态
                 REREGISTER_COUNTER.increment();
                 logger.info(PREFIX + "{} - Re-registering apps/{}", appPathIdentifier, instanceInfo.getAppName());
                 long timestamp = instanceInfo.setIsDirtyWithTime();
+                //重新注册
                 boolean success = register();
                 if (success) {
                     instanceInfo.unsetIsDirty(timestamp);
@@ -1032,6 +1035,7 @@ public class DiscoveryClient implements EurekaClient {
         }
 
         // Notify about cache refresh before updating the instance remote status
+        //刷新缓存事件通知
         onCacheRefreshed();
 
         // Update remote status based on refreshed data held in the cache
@@ -1233,7 +1237,7 @@ public class DiscoveryClient implements EurekaClient {
     /**
      * Updates the delta information fetches from the eureka server into the
      * local cache.
-     *
+     *  这里是真正更新注册应用信息的地方
      * @param delta
      *            the delta information received from eureka server in the last
      *            poll cycle.
@@ -1496,6 +1500,7 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     * 获取注册信息的任务
      * The task that fetches the registry information at specified intervals.
      *
      */
@@ -1669,6 +1674,8 @@ public class DiscoveryClient implements EurekaClient {
     }
 
     /**
+     *
+     * 这里是个观察模式，刷新缓存事件触发后通知所有事件监听者
      * Send the given event on the EventBus if one is available
      *
      * @param event the event to send on the eventBus

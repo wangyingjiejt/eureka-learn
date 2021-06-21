@@ -63,18 +63,24 @@ public class TimedSupervisorTask extends TimerTask {
     public void run() {
         Future<?> future = null;
         try {
+            //使用Future，可以设定子线程的超时时间，这样当前线程就不用无限等待
             future = executor.submit(task);
             threadPoolLevelGauge.set((long) executor.getActiveCount());
+            //指定等待子线程的最长时间
             future.get(timeoutMillis, TimeUnit.MILLISECONDS);  // block until done or timeout
+            //设置延迟时间
             delay.set(timeoutMillis);
             threadPoolLevelGauge.set((long) executor.getActiveCount());
             successCounter.increment();
         } catch (TimeoutException e) {
+            //捕获超时异常
             logger.warn("task supervisor timed out", e);
             timeoutCounter.increment();
 
             long currentDelay = delay.get();
+            //任务线程超时时，把delay翻倍，但不会超过外部调用时设定的最大延迟时间
             long newDelay = Math.min(maxDelay, currentDelay * 2);
+            //多线程环境下使用cas
             delay.compareAndSet(currentDelay, newDelay);
 
         } catch (RejectedExecutionException e) {
@@ -98,6 +104,10 @@ public class TimedSupervisorTask extends TimerTask {
                 future.cancel(true);
             }
 
+            /**
+             * 这里使用的是一个递归的方式实现了定时任务反复执行的逻辑，外边通过构造函数把scheduler传入方法内，
+             * 只要调度器没有停止，就再指定等待一段时间后在执行一次同样的任务
+             */
             if (!scheduler.isShutdown()) {
                 scheduler.schedule(this, delay.get(), TimeUnit.MILLISECONDS);
             }
